@@ -6,14 +6,16 @@ A Python-based tool for TEHEEE
 
 - **150 Bera**
 - **HONEY-WBERA LP**: Add liquidity on [Bartio Pools](https://bartio.bex.berachain.com/pools?pool=allPools).
-- **stgUSDC**: Ensure you have approximately 800 stgUSDC for minting.
+- **800ish stgUSDC** for minting.
 
 ## Features
 
 - Unwraps and wraps 100 Beras
 - Claims BGT from LPs and delegates to validators
 - Mints Honey using stgUSDC on [Bartio Honey](https://bartio.honey.berachain.com/)
+   - Mint 1 Honey at a time
 - Supplies Honey to [Bartio Bend](https://bartio.bend.berachain.com/)
+   - Supply 1 Honey at a time
 
 ---
 
