@@ -4,9 +4,9 @@ A Python-based tool for TEHEEE
 
 ## Requirements
 
-- **150 Bera**
+- **150 Bera for wraps & unwraps**
 - **HONEY-WBERA LP**: Add liquidity on [Bartio Pools](https://bartio.bex.berachain.com/pools?pool=allPools).
-- **800ish stgUSDC** for minting.
+- **800ish stgUSDC** for minting HONEY.
 
 ## Features
 
