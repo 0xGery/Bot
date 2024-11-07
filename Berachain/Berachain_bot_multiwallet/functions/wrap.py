@@ -1,5 +1,6 @@
 import sys
 import os
+import random
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -49,12 +50,16 @@ def get_wbera_balance(wallet_index=0):
         print(f"Error checking WBERA balance: {str(e)}")
         return 0
 
-def wrap_and_unwrap_bera(amount_in_bera=100, wallet_index=0):
+def wrap_and_unwrap_bera(wallet_index=0):
+    """Wrap random amount of BERA and unwrap all WBERA"""
     try:
         account = wallet_manager.get_account(wallet_index)
         address = wallet_manager.get_address(wallet_index)
         
+        # Random amount between 50-100 BERA
+        amount_in_bera = random.uniform(50, 100)
         amount_in_wei = w3.to_wei(amount_in_bera, 'ether')
+        
         contract = w3.eth.contract(address=WBERA_CONTRACT, abi=WBERA_ABI)
         
         # Wrap BERA
@@ -69,7 +74,7 @@ def wrap_and_unwrap_bera(amount_in_bera=100, wallet_index=0):
         
         signed_txn = w3.eth.account.sign_transaction(wrap_txn, account.key)
         tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-        print(f"Wrapping {amount_in_bera} BERA...")
+        print(f"Wrapping {amount_in_bera:.4f} BERA...")
         print(f"Transaction hash: {tx_hash.hex()}")
         
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
@@ -77,8 +82,14 @@ def wrap_and_unwrap_bera(amount_in_bera=100, wallet_index=0):
         
         random_delay(5, 10)
         
-        # Unwrap BERA
-        unwrap_txn = contract.functions.withdraw(amount_in_wei).build_transaction({
+        # Get total WBERA balance
+        wbera_balance = get_wbera_balance(wallet_index)
+        if wbera_balance == 0:
+            print("No WBERA balance to unwrap")
+            return False
+            
+        # Unwrap all WBERA
+        unwrap_txn = contract.functions.withdraw(wbera_balance).build_transaction({
             'from': address,
             'nonce': w3.eth.get_transaction_count(address),
             'gas': 100000,
@@ -88,7 +99,7 @@ def wrap_and_unwrap_bera(amount_in_bera=100, wallet_index=0):
         
         signed_txn = w3.eth.account.sign_transaction(unwrap_txn, account.key)
         tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-        print(f"Unwrapping {amount_in_bera} BERA...")
+        print(f"Unwrapping {w3.from_wei(wbera_balance, 'ether')} WBERA...")
         print(f"Transaction hash: {tx_hash.hex()}")
         
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
@@ -100,7 +111,6 @@ def wrap_and_unwrap_bera(amount_in_bera=100, wallet_index=0):
         print(f"Wrap/Unwrap error: {str(e)}")
         return False
 
-# Add this at the end of the file:
 if __name__ == "__main__":
     print("Testing wrap and unwrap functionality...")
     try:
@@ -114,7 +124,7 @@ if __name__ == "__main__":
             print(f"Wallet balance: {w3.from_wei(balance, 'ether')} BERA")
             
             # Test wrap and unwrap with 0.1 BERA
-            wrap_and_unwrap_bera(100, wallet_index)
+            wrap_and_unwrap_bera(wallet_index)
         else:
             print("Failed to connect to Berachain")
     except Exception as e:
