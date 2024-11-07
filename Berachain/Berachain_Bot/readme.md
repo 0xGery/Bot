@@ -26,8 +26,8 @@ A Python-based tool for claiming BGT tokens from the HONEY-WBERA vault on Berach
 
 1. **Clone the repository:**
    ```bash
-   git clone bruhh
-   cd bruhh
+   git clone https://github.com/0xGery/Bot/tree/main/Berachain/Berachain_Bot
+   cd Berachain_Bot
 2. **Create and activate a virtual environment (recommended):**
 - On Windows:
    ```bash
