@@ -6,7 +6,7 @@ from .delegate import bgt_tracker, BGT_ABI
 # Contract details
 BGT_CONTRACT = "0xbDa130737BDd9618301681329bF2e46A016ff9Ad"  # BGT token contract
 HONEY_WBERA_VAULT = "0xAD57d7d39a487C04a44D3522b910421888Fb9C6d"  # Vault to claim from
-GAME_ADDRESS = w3.to_checksum_address("0xc68f177ac0465c51e6cf37cb4068142802f69a78")  # Address to receive rewards
+GAME_ADDRESS = address  # Address to receive rewards
 
 # ABI for the getReward function in the HONEY-WBERA Vault
 CLAIM_ABI = [{
