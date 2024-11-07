@@ -1,6 +1,6 @@
-# Berachain BGT Claimer
+# Berachain bot
 
-A Python-based tool for claiming BGT tokens from the HONEY-WBERA vault on Berachain and delegating them to validators.
+A Python-based tool for TEHEEE
 
 ## Requirements
 
