@@ -10,8 +10,8 @@ from config import w3
 from utils import account, address, random_delay
 from eth_abi import encode
 
-# Contract addresses - CORRECTED
-BGT_CONTRACT = "0xbDa130737BDd9618301681329bF2e46A016ff9Ad"  # This is the correct BGT contract
+# Contract addresses 
+BGT_CONTRACT = "0xbDa130737BDd9618301681329bF2e46A016ff9Ad"  # BGT contract
 VALIDATOR_ADDRESS = w3.to_checksum_address("0x40495A781095932e2FC8dccA69F5e358711Fdd41")
 
 # ABI for BGT contract
