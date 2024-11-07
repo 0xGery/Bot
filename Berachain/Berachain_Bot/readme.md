@@ -29,16 +29,42 @@ A Python-based tool for claiming BGT tokens from the HONEY-WBERA vault on Berach
    git clone bruhh
    cd bruhh
 2. **Create and activate a virtual environment (recommended):**
+- On Windows:
+   ```bash
+   python -m venv venv
+   venv\Scripts\activate
+- On UNIX/Macos:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate
+3. **Install required packages:**
+   ```bash
+   pip install -r requirements.txt
+4. **Create a .env file in the root directory with your private key (without the 0x prefix):**
+   ```bash
+   PRIVATE_KEY=your_private_key_here
 
-On Windows:
-```bash
-python -m venv venv
-venv\Scripts\activate
-```
-On UNIX/Macos:
-```bash
-python -m venv venv
-source venv/bin/activate
-```
+## Configuration
+Create a requirements.txt file with these dependencies:
+   ```bash
+   web3==6.11.1
+   python-dotenv==1.0.0
+   eth-abi==4.2.1
+   ```
 
+## Usage
+Run the main script to start:
+   ```bash
+   python main.py
+   ```
 
+## Security Notes
+- Do not commit your .env file or expose your private key
+- Add .env to your .gitignore file
+- Verify contract addresses before interacting
+
+## Contributing
+- Fork the repository
+- Create a new branch
+- Make your changes
+- Submit a pull request
