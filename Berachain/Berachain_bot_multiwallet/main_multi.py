@@ -85,7 +85,7 @@ class MultiWalletScheduler:
 
     def execute_wrap_unwrap(self, wallet_index):
         """Execute wrap and unwrap"""
-        if wrap_and_unwrap_bera(100, wallet_index):  # 0.1 BERA
+        if wrap_and_unwrap_bera(wallet_index):  # No amount needed now
             state = self.wallet_states[wallet_index]
             state['wrap_count'] += 1
 
@@ -138,7 +138,7 @@ class MultiWalletScheduler:
 
     def wallet_loop(self, wallet_index):
         """Continuous loop for a single wallet"""
-        base_delay = random.uniform(30, 60)  # Base delay different for each wallet
+        base_delay = random.uniform(5, 10)  # Changed to 5-10 seconds
         print(f"Wallet {wallet_index + 1} starting with {base_delay:.2f} seconds base delay")
         
         while self.running:
@@ -152,7 +152,7 @@ class MultiWalletScheduler:
                 
             except Exception as e:
                 print(f"Error in wallet {wallet_index + 1} loop: {str(e)}")
-                time.sleep(random.uniform(5, 20))
+                time.sleep(random.uniform(5, 10))  # Also adjusted error delay
 
     def start_all_wallets(self):
         """Start threads for all wallets"""
