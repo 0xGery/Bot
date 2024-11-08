@@ -64,142 +64,166 @@ async function getUserInput() {
 class PrecisionMintBot {
     constructor(privateKey, walletId, contractAddress, mintStage) {
         this.currentProviderIndex = 0;
-        this.providers = RPC_ENDPOINTS.map(endpoint => new ethers.JsonRpcProvider(endpoint));
+        // Create separate provider instances for different operations
+        this.mintProviders = RPC_ENDPOINTS.map(endpoint => new ethers.JsonRpcProvider(endpoint));
+        this.monitorProviders = RPC_ENDPOINTS.map(endpoint => new ethers.JsonRpcProvider(endpoint));
         this.wallet = new ethers.Wallet(privateKey);
         this.walletId = walletId;
         this.contractAddress = contractAddress;
         this.mintStage = mintStage;
         this.mintAttempted = false;
+        this.fastestProvider = null;
     }
 
-    async getFastestProvider() {
-        const latencies = await Promise.all(
-            this.providers.map(async (provider, index) => {
+    async getFastestProvider(providers = this.monitorProviders) {
+        const results = await Promise.allSettled(
+            providers.map(async (provider, index) => {
                 const start = Date.now();
                 try {
                     await provider.getBlockNumber();
-                    return { index, latency: Date.now() - start };
-                } catch (e) {
-                    return { index, latency: Infinity };
+                    return { provider, latency: Date.now() - start, index };
+                } catch {
+                    return { latency: Infinity, index };
                 }
             })
         );
+
+        const fastest = results
+            .filter(r => r.status === 'fulfilled' && r.value.latency !== Infinity)
+            .sort((a, b) => a.value.latency - b.value.latency)[0];
+
+        if (!fastest) throw new Error("No responsive providers");
         
-        const fastest = latencies.sort((a, b) => a.latency - b.latency)[0];
-        return this.providers[fastest.index];
+        this.currentProviderIndex = fastest.value.index;
+        return fastest.value.provider;
     }
 
-    async getMintCost() {
-        if (this.mintCost === null) {
+    async getWorkingProvider(providers = this.monitorProviders) {
+        const startIndex = this.currentProviderIndex;
+        
+        for (let i = 0; i < providers.length; i++) {
             try {
-                // Get the threeDollarsEth value directly from the contract
-                this.mintCost = await this.contracts[0].threeDollarsEth();
-                console.log(`Wallet ${this.walletId} - Mint cost (threeDollarsEth): ${ethers.formatEther(this.mintCost)} ETH`);
-            } catch (error) {
-                console.error(`Wallet ${this.walletId} - Error getting mint cost:`, error.message);
-                throw error;
+                const provider = providers[this.currentProviderIndex];
+                await provider.getBlockNumber();
+                return provider;
+            } catch {
+                this.currentProviderIndex = (this.currentProviderIndex + 1) % providers.length;
+                if (this.currentProviderIndex === startIndex) {
+                    await new Promise(r => setTimeout(r, 10)); 
+                }
             }
         }
-        return this.mintCost;
+        throw new Error("No working providers");
     }
 
-    async checkMintStatus() {
-        try {
-            const provider = this.getNextProvider();
-            const contract = new ethers.Contract(this.contractAddress, ABI, this.wallet.connect(provider));
+    async waitForMintTime(targetTime, targetBlock) {
+        if (targetTime) {
+            const now = new Date();
+            const timeUntilMint = targetTime - now;
             
-            // Check specific mint stage
-            const isMintActive = await contract.contractPresaleActive(this.mintStage);
-            
-            if (!isMintActive) {
-                console.log(`Wallet ${this.walletId} - Stage ${this.mintStage} mint not live yet`);
+            if (timeUntilMint > 200) { // 200ms buffer
+                await new Promise(r => setTimeout(r, timeUntilMint - 200));
             }
             
-            return isMintActive;
-        } catch (error) {
-            console.error(`Wallet ${this.walletId} - Error checking mint status:`, error.message);
-            return false;
+            // Waiting for last 200ms
+            while (new Date() < targetTime) {
+                const remaining = targetTime - new Date();
+                if (remaining > 50) {
+                    await new Promise(r => setTimeout(r, 10));
+                } else if (remaining > 10) {
+                    await new Promise(r => setTimeout(r, 2));
+                } else {
+                    await new Promise(r => setTimeout(r, 1));
+                }
+            }
+        } else {
+            // Block monitoring
+            let lastBlock = 0;
+            while (true) {
+                try {
+                    const provider = await this.getWorkingProvider();
+                    const currentBlock = await provider.getBlockNumber();
+                    
+                    if (currentBlock >= targetBlock) break;
+                    
+                    if (currentBlock > lastBlock) {
+                        console.log(`Wallet ${this.walletId} - Block ${currentBlock}/${targetBlock}`);
+                        lastBlock = currentBlock;
+                    }
+
+                    if (currentBlock >= targetBlock - 1) {
+                        await new Promise(r => setTimeout(r, 1));
+                    } else {
+                        await new Promise(r => setTimeout(r, 10));
+                    }
+                } catch {
+                    continue; // try next provider
+                }
+            }
         }
     }
 
     async mint() {
         if (this.mintAttempted) return false;
-        this.mintAttempted = true;
-
-        try {
-            const provider = this.getNextProvider();
-            const contract = new ethers.Contract(this.contractAddress, ABI, this.wallet.connect(provider));
-            
-            const nonce = await provider.getTransactionCount(this.wallet.address);
-            const latestMintCost = await contract.threeDollarsEth();
-
-            const tx = await contract.batchMint(
-                1, // amount
-                Number(this.mintStage), // mintId based on user input
-                {
-                    value: latestMintCost,
-                    gasLimit: GAS_LIMIT,
-                    nonce,
-                    maxFeePerGas: ethers.parseUnits("0.0135", "gwei"),
-                    maxPriorityFeePerGas: ethers.parseUnits("0", "gwei"),
-                    type: 2
-                }
-            );
-
-            console.log(`Wallet ${this.walletId} - Mint TX sent! Hash: ${tx.hash}`);
-            const receipt = await tx.wait();
-            console.log(`Wallet ${this.walletId} - Mint successful! Block: ${receipt.blockNumber}`);
-            return true;
-        } catch (error) {
-            console.error(`Wallet ${this.walletId} - Mint error:`, error.message);
-            return false;
-        }
-    }
-
-    async waitForMintTime(targetTime, targetBlock) {
-        console.log(`\nWallet ${this.walletId} - Waiting for mint time...`);
         
-        if (targetTime) {
-            const now = new Date();
-            const timeUntilMint = targetTime - now;
-            
-            if (timeUntilMint > 5000) { // If more than 5 seconds until mint
-                console.log(`Wallet ${this.walletId} - Sleeping until 5 seconds before mint time`);
-                await new Promise(r => setTimeout(r, timeUntilMint - 5000));
-            }
-            
-            // Precision waiting for last 5 seconds
-            while (new Date() < targetTime) {
-                await new Promise(r => setTimeout(r, 1)); // 1ms precision
-            }
-        } else {
-            const provider = this.getNextProvider();
-            while (true) {
-                const currentBlock = await provider.getBlockNumber();
-                if (currentBlock >= targetBlock - 1) {
-                    break;
+        // Pre-prepare multiple providers for instant fallback
+        const preparedProviders = await Promise.all(
+            this.mintProviders.map(async provider => {
+                try {
+                    await provider.getBlockNumber();
+                    return provider;
+                } catch {
+                    return null;
                 }
-                await new Promise(r => setTimeout(r, 500)); // Check every 500ms
-            }
-            
-            // Precision monitoring for target block
-            while (true) {
-                const currentBlock = await provider.getBlockNumber();
-                if (currentBlock >= targetBlock) {
-                    break;
-                }
-                await new Promise(r => setTimeout(r, 1)); // 1ms precision
+            })
+        );
+
+        const workingProviders = preparedProviders.filter(p => p !== null);
+        
+        for (let attempt = 0; attempt < workingProviders.length; attempt++) {
+            try {
+                const provider = workingProviders[attempt];
+                const contract = new ethers.Contract(this.contractAddress, ABI, this.wallet.connect(provider));
+                
+                // Parallel execution of pre-mint checks
+                const [nonce, latestMintCost] = await Promise.all([
+                    provider.getTransactionCount(this.wallet.address),
+                    contract.threeDollarsEth()
+                ]);
+
+                const tx = await contract.batchMint(
+                    1,
+                    Number(this.mintStage),
+                    {
+                        value: latestMintCost,
+                        gasLimit: GAS_LIMIT,
+                        nonce,
+                        maxFeePerGas: ethers.parseUnits("0.0135", "gwei"),
+                        maxPriorityFeePerGas: ethers.parseUnits("0", "gwei"),
+                        type: 2
+                    }
+                );
+
+                console.log(`Wallet ${this.walletId} - Mint TX sent! Hash: ${tx.hash}`);
+                this.mintAttempted = true;
+                
+                // Fire and forget confirmation
+                tx.wait().then(receipt => {
+                    console.log(`Wallet ${this.walletId} - Mint confirmed in block ${receipt.blockNumber}`);
+                }).catch(() => {});
+                
+                return true;
+            } catch (error) {
+                if (attempt < workingProviders.length - 1) continue;
+                console.log(`Wallet ${this.walletId} - All mint attempts failed`);
             }
         }
+        return false;
     }
 
     async monitorWithPrecision(targetTime, targetBlock) {
         console.log(`Wallet ${this.walletId} - Starting monitoring with address: ${this.wallet.address}`);
-        
-        // Wait for mint time
         await this.waitForMintTime(targetTime, targetBlock);
-        
-        // Execute mint immediately when time is reached
         console.log(`Wallet ${this.walletId} - MINT TIME REACHED! Executing...`);
         await this.mint();
     }
@@ -233,7 +257,7 @@ async function main() {
     // Start bots with minimal delays
     await Promise.all(
         bots.map((bot, index) => 
-            new Promise(r => setTimeout(r, index * 20))
+            new Promise(r => setTimeout(r, index * 10)) // Reduced from 20ms to 10ms
                 .then(() => bot.monitorWithPrecision(targetTime, targetBlock))
         )
     );
