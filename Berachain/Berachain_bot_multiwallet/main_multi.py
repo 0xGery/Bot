@@ -3,10 +3,18 @@ from functions.lending import supply_honey
 from functions.wrap import wrap_and_unwrap_bera
 from functions.honey import mint_honey
 from functions.claim import claim_bgt
-from functions.delegate import delegate_bgt, activate_boost, bgt_tracker
-from config import w3
+from functions.delegate import (
+    delegate_bgt, 
+    activate_boost, 
+    bgt_tracker, 
+    BGT_CONTRACT, 
+    BGT_ABI, 
+    VALIDATOR_ADDRESS
+)
+from config import w3, rotate_rpc
 import random
 import time
+import argparse
 from datetime import datetime, timedelta
 import threading
 import queue
@@ -89,19 +97,53 @@ class MultiWalletScheduler:
         return should_delegate
 
     def should_activate_boost(self, wallet_index):
-        """Check if it's time to activate boosts"""
-        wallet_data = bgt_tracker.wallet_data.get(str(wallet_index), {})
-        current_time = datetime.now()
-        
-        # Get the oldest queued boost time
-        queued_boosts = wallet_data.get('queued_boosts', {})
-        if not queued_boosts:
-            return False
+        try:
+            address = wallet_manager.get_address(wallet_index)
+            contract = w3.eth.contract(address=BGT_CONTRACT, abi=BGT_ABI)
+            current_block = w3.eth.block_number
             
-        oldest_boost_time = min(datetime.fromisoformat(t) for t in queued_boosts.keys())
-        
-        # Only activate if the boost has been queued for at least 12 hours
-        return (current_time - oldest_boost_time) > timedelta(hours=12)
+            # Get queued amount at current block
+            queued_amount = contract.functions.queuedBoost(
+                address,
+                current_block
+            ).call()
+            
+            if queued_amount == 0:
+                print("\n📊 No queued balance to activate")
+                return False
+                
+            # Get queue block from tracker
+            wallet_data = bgt_tracker.wallet_data[str(wallet_index)]
+            queued_boosts = wallet_data.get('queued_boosts', {})
+            
+            if not queued_boosts:
+                return False
+                
+            # Check oldest queued boost
+            oldest_queue_block = min(int(block) for block in queued_boosts.keys())
+            blocks_passed = current_block - oldest_queue_block
+            
+            # Required blocks: 8186 + 5 blocks buffer
+            REQUIRED_BLOCKS = 8186 + 5
+            
+            can_activate = blocks_passed >= REQUIRED_BLOCKS
+            
+            print(f"\n🔍 Boost Activation Check for Wallet {wallet_index + 1}:")
+            print(f"├─ Address: {address}")
+            print(f"├─ Queued Amount: {w3.from_wei(queued_amount, 'ether')} BGT")
+            print(f"├─ Queue Block: {oldest_queue_block}")
+            print(f"├─ Current Block: {current_block}")
+            print(f"├─ Blocks Passed: {blocks_passed}/{REQUIRED_BLOCKS}")
+            print(f"└─ Can Activate: {'✅' if can_activate else '❌'}")
+            
+            return can_activate
+            
+        except Exception as e:
+            print(f"❌ Error checking boost activation: {str(e)}")
+            if rotate_rpc():
+                print("🔄 Retrying with new RPC...")
+                return self.should_activate_boost(wallet_index)
+            return False
 
     def execute_bgt_claim(self, wallet_index):
         """Execute BGT claim"""
@@ -226,7 +268,7 @@ class MultiWalletScheduler:
             )
             self.threads.append(thread)
             thread.start()
-            time.sleep(2) 
+            time.sleep(2)  # Reduced from 2 seconds to 1 second
 
     def stop_all_wallets(self):
         """Stop all wallet threads gracefully"""
@@ -252,6 +294,30 @@ class MultiWalletScheduler:
             print(f"   ├─ 📥 BGT Claims: {state['bgt_claim_count']}")
             print(f"   └─ 📊 BGT Delegations: {state['bgt_delegate_count']}")
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='Multi-wallet BGT delegation bot')
+    parser.add_argument(
+        '--reset',
+        choices=['all', 'queued', 'none'],
+        default='queued',
+        help='Reset mode: all (full reset), queued (only queued boosts), none (keep all data)'
+    )
+    return parser.parse_args()
+
+def reset_all_data():
+    """Reset all BGT tracker data"""
+    bgt_tracker.wallet_data = {}
+    bgt_tracker._save_data()
+    print("✅ All BGT tracker data reset")
+
+def clean_queued_boosts():
+    """Clean only queued boosts data while keeping other stats"""
+    for wallet_id in bgt_tracker.wallet_data:
+        if 'queued_boosts' in bgt_tracker.wallet_data[wallet_id]:
+            bgt_tracker.wallet_data[wallet_id]['queued_boosts'] = {}
+    bgt_tracker._save_data()
+    print("✅ Queued boosts data cleaned")
+
 def main():
     if not check_connection():
         print("Failed to connect to network")
@@ -273,4 +339,15 @@ def main():
         scheduler.stop_all_wallets()
 
 if __name__ == "__main__":
+    args = parse_args()
+    
+    # Handle data reset based on command line argument
+    if args.reset == 'all':
+        reset_all_data()
+    elif args.reset == 'queued':
+        clean_queued_boosts()
+    else:
+        print("ℹ️ Keeping existing data")
+    
     main()
+
