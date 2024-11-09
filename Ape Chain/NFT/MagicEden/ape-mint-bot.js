@@ -2,8 +2,8 @@ const ethers = require('ethers');
 require('dotenv').config();
 
 const CHAIN_ID = 33139;
-const CONTRACT_ADDRESS = '0xb3443B6Bd585ba4118CaE2beDb61c7EC4a8281Df';
-const APE_PRICE = ethers.parseUnits("33", "ether");
+const CONTRACT_ADDRESS = 'input sc';
+const APE_PRICE = ethers.parseUnits("input price", "ether");
 
 // Only keep the working RPCs
 const RPC_ENDPOINTS = [
@@ -98,7 +98,7 @@ class WarMintBot {
                     ]);
 
                     const tx = await contract.mint(
-                        2,              
+                        {input amount},              
                         [],            
                         mintTimestamp, 
                         "0x",         
