@@ -4,7 +4,7 @@ import os
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import w3
+from config import w3, rotate_rpc
 from utils import wallet_manager, random_delay
 from eth_abi import encode
 from web3 import Web3
@@ -53,24 +53,31 @@ ERC20_ABI = [{
     "type": "function"
 }]
 
-def check_and_approve_honey(amount, wallet_index=0):
+def check_and_approve_honey(amount, wallet_index=0, retry_count=0):
     """Check HONEY balance and approve if needed"""
+    MAX_RETRIES = 3
+    
+    if retry_count >= MAX_RETRIES:
+        print(f"❌ Max retries ({MAX_RETRIES}) reached. Aborting operation.")
+        return False
+        
     try:
         account = wallet_manager.get_account(wallet_index)
         address = wallet_manager.get_address(wallet_index)
-        
         honey_contract = w3.eth.contract(address=HONEY_TOKEN, abi=ERC20_ABI)
         
         balance = honey_contract.functions.balanceOf(address).call()
-        print(f"HONEY Balance: {w3.from_wei(balance, 'ether')} HONEY")
+        print("\n🍯 HONEY Balance Check:")
+        print(f"└─ Current Balance: {w3.from_wei(balance, 'ether')} HONEY")
         
         if balance < amount:
-            print(f"Insufficient HONEY balance")
+            print("❌ Insufficient HONEY balance")
             return False
             
         allowance = honey_contract.functions.allowance(address, LENDING_CONTRACT).call()
         if allowance < amount:
-            print("Approving HONEY...")
+            print("\n✍️  Approving HONEY:")
+            print("-"*30)
             
             approve_txn = honey_contract.functions.approve(
                 LENDING_CONTRACT,
@@ -85,26 +92,36 @@ def check_and_approve_honey(amount, wallet_index=0):
             
             signed_txn = w3.eth.account.sign_transaction(approve_txn, account.key)
             tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-            print(f"Approval transaction hash: {tx_hash.hex()}")
+            print(f"📝 Tx Hash: {tx_hash.hex()}")
             
             receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-            print(f"Approval successful! Gas used: {receipt['gasUsed']}")
+            print(f"✅ Approval successful! Gas used: {receipt['gasUsed']}")
             
             random_delay(5, 10)
             
         return True
-        
+            
     except Exception as e:
-        print(f"Approval error: {str(e)}")
+        print(f"❌ Approval error: {str(e)}")
+        if rotate_rpc():
+            return check_and_approve_honey(amount, wallet_index, retry_count + 1)
         return False
 
-def supply_honey(amount_in_honey=1, wallet_index=0):
+def supply_honey(amount_in_honey=1, wallet_index=0, retry_count=0):
     """Supply HONEY to lending protocol"""
+    MAX_RETRIES = 3
+    
+    if retry_count >= MAX_RETRIES:
+        print(f"❌ Max retries ({MAX_RETRIES}) reached. Aborting operation.")
+        return False
+        
     try:
         account = wallet_manager.get_account(wallet_index)
         address = wallet_manager.get_address(wallet_index)
-        
         amount_in_wei = w3.to_wei(amount_in_honey, 'ether')
+        
+        print("\n📥 SUPPLYING HONEY:")
+        print("-"*30)
         
         if not check_and_approve_honey(amount_in_wei, wallet_index):
             return False
@@ -126,16 +143,18 @@ def supply_honey(amount_in_honey=1, wallet_index=0):
 
         signed_txn = w3.eth.account.sign_transaction(transaction, account.key)
         tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-        print(f"Supplying {amount_in_honey} HONEY...")
-        print(f"Transaction hash: {tx_hash.hex()}")
+        print(f"🔄 Supplying {amount_in_honey} HONEY...")
+        print(f"📝 Tx Hash: {tx_hash.hex()}")
         
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-        print(f"Supply successful! Gas used: {receipt['gasUsed']}")
+        print(f"✅ Supply successful! Gas used: {receipt['gasUsed']}")
         
         return True
-        
+            
     except Exception as e:
-        print(f"Supply error: {str(e)}")
+        print(f"❌ Supply error: {str(e)}")
+        if rotate_rpc():
+            return supply_honey(amount_in_honey, wallet_index, retry_count + 1)
         return False
 
 # Alternative raw method implementation
@@ -152,7 +171,7 @@ def supply_honey_raw(amount_in_honey=1, wallet_index=0):
         if not check_and_approve_honey(amount_in_wei, wallet_index):
             return False
             
-        # Method ID for supply(address,uint256,address,uint16)
+        # Method ID for supply
         method_id = "0x617ba037"
         
         # Encode parameters
