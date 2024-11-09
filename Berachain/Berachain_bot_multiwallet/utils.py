@@ -29,18 +29,24 @@ wallet_manager = WalletManager()
 
 def random_delay(min_secs=5, max_secs=10):
     delay = random.randint(min_secs, max_secs)
-    print(f"Waiting {delay} seconds...")
+    print(f"\n⏳ Waiting {delay} seconds...")
     time.sleep(delay)
 
 def check_connection():
     if w3.is_connected():
-        print(f"Connected to Berachain")
-        print(f"Current block number: {w3.eth.block_number}")
-        print(f"Total wallets loaded: {wallet_manager.total_wallets()}")
+        print("\n" + "="*50)
+        print("🌐 NETWORK CONNECTION STATUS")
+        print("="*50)
+        print(f"✅ Connected to Berachain")
+        print(f"📦 Current block: {w3.eth.block_number}")
+        print(f"👛 Total wallets: {wallet_manager.total_wallets()}")
         
-        # Print balance for each wallet
+        print("\n" + "="*50)
+        print("💰 WALLET BALANCES")
+        print("="*50)
         for i, address in enumerate(wallet_manager.addresses):
             balance = w3.eth.get_balance(address)
-            print(f"Wallet {i+1} ({address}): {w3.from_wei(balance, 'ether')} BERA")
+            print(f"Wallet {i+1} ({address}):")
+            print(f"└─ {w3.from_wei(balance, 'ether'):.4f} BERA")
         return True
     return False
