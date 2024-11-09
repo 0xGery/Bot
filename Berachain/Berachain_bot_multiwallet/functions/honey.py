@@ -4,7 +4,7 @@ import os
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import w3
+from config import w3, rotate_rpc
 from utils import wallet_manager, random_delay
 from eth_abi import encode
 
@@ -52,26 +52,32 @@ ERC20_ABI = [{
     "type": "function"
 }]
 
-def check_and_approve_stgusdc(amount, wallet_index=0):
+def check_and_approve_stgusdc(amount, wallet_index=0, retry_count=0):
     """Check STGUSDC balance and approve if needed"""
+    MAX_RETRIES = 3
+    
+    if retry_count >= MAX_RETRIES:
+        print(f"❌ Max retries ({MAX_RETRIES}) reached. Aborting operation.")
+        return False
+        
     try:
         account = wallet_manager.get_account(wallet_index)
         address = wallet_manager.get_address(wallet_index)
-        
         stgusdc_contract = w3.eth.contract(address=STGUSDC_CONTRACT, abi=ERC20_ABI)
         
         # Check balance
         balance = stgusdc_contract.functions.balanceOf(address).call()
-        print(f"STGUSDC Balance: {balance}")
+        print("\n💰 STGUSDC Balance Check:")
+        print(f"└─ Current Balance: {balance} units")
         
         if balance < amount:
-            print(f"Insufficient STGUSDC balance. Have {balance}, need {amount}")
+            print("❌ Insufficient STGUSDC balance")
             return False
             
-        # Check current allowance
         allowance = stgusdc_contract.functions.allowance(address, HONEY_MINT_CONTRACT).call()
         if allowance < amount:
-            print("Approving STGUSDC...")
+            print("\n✍️  Approving STGUSDC:")
+            print("-"*30)
             
             approve_txn = stgusdc_contract.functions.approve(
                 HONEY_MINT_CONTRACT,
@@ -86,24 +92,35 @@ def check_and_approve_stgusdc(amount, wallet_index=0):
             
             signed_txn = w3.eth.account.sign_transaction(approve_txn, account.key)
             tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-            print(f"Approval transaction hash: {tx_hash.hex()}")
+            print(f"📝 Tx Hash: {tx_hash.hex()}")
             
             receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-            print(f"Approval successful! Gas used: {receipt['gasUsed']}")
+            print(f"✅ Approval successful! Gas used: {receipt['gasUsed']}")
             
             random_delay(5, 10)
             
         return True
-        
+            
     except Exception as e:
-        print(f"Approval error: {str(e)}")
+        print(f"❌ Approval error: {str(e)}")
+        if rotate_rpc():
+            return check_and_approve_stgusdc(amount, wallet_index, retry_count + 1)
         return False
 
-def mint_honey(amount=1000000, wallet_index=0):
+def mint_honey(amount=1000000, wallet_index=0, retry_count=0):
     """Mint HONEY tokens from STGUSDC"""
+    MAX_RETRIES = 3
+    
+    if retry_count >= MAX_RETRIES:
+        print(f"❌ Max retries ({MAX_RETRIES}) reached. Aborting operation.")
+        return False
+        
     try:
         account = wallet_manager.get_account(wallet_index)
         address = wallet_manager.get_address(wallet_index)
+        
+        print("\n🍯 MINTING HONEY:")
+        print("-"*30)
         
         if not check_and_approve_stgusdc(amount, wallet_index):
             return False
@@ -124,16 +141,18 @@ def mint_honey(amount=1000000, wallet_index=0):
 
         signed_txn = w3.eth.account.sign_transaction(transaction, account.key)
         tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-        print(f"Minting HONEY...")
-        print(f"Transaction hash: {tx_hash.hex()}")
+        print(f"🔄 Minting HONEY...")
+        print(f"📝 Tx Hash: {tx_hash.hex()}")
         
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-        print(f"Mint successful! Gas used: {receipt['gasUsed']}")
+        print(f"✅ Mint successful! Gas used: {receipt['gasUsed']}")
         
         return True
-        
+            
     except Exception as e:
-        print(f"Mint error: {str(e)}")
+        print(f"❌ Mint error: {str(e)}")
+        if rotate_rpc():
+            return mint_honey(amount, wallet_index, retry_count + 1)
         return False
 
 # Test execution
@@ -147,7 +166,7 @@ if __name__ == "__main__":
             address = wallet_manager.get_address(wallet_index)
             print(f"Testing with wallet {wallet_index + 1} ({address})")
             
-            # Test mint with 1 STGUSDC (1000000 units considering decimals)
+            # Test mint with 1 STGUSDC 
             mint_honey(1000000, wallet_index)
         else:
             print("Failed to connect to Berachain")
