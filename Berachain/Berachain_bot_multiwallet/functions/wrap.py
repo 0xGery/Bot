@@ -28,7 +28,7 @@ WBERA_ABI = [
         "stateMutability": "nonpayable",
         "type": "function"
     },
-    {   
+    {   # Add balanceOf function
         "constant": True,
         "inputs": [{"name": "account", "type": "address"}],
         "name": "balanceOf",
@@ -110,11 +110,11 @@ def wrap_and_unwrap_bera(wallet_index=0, retry_count=0):
         amount_in_wei = w3.to_wei(amount_in_bera, 'ether')
         
         # Calculate total cost (amount + gas)
-        estimated_gas = 100000  # gas limit
+        estimated_gas = 100000  # standard gas limit
         gas_price = w3.eth.gas_price
         total_cost = amount_in_wei + (estimated_gas * gas_price)
         
-        # Check if theres enough balance for the transaction
+        # Check if we have enough balance for the transaction
         if bera_balance < total_cost:
             print(f"❌ Insufficient balance for wrap. Have {w3.from_wei(bera_balance, 'ether')} BERA, need {w3.from_wei(total_cost, 'ether')} BERA")
             return False
@@ -142,7 +142,7 @@ def wrap_and_unwrap_bera(wallet_index=0, retry_count=0):
             
             random_delay(5, 10)
             
-            # Get updated WBERA balance
+            # Get updated WBERA balance and unwrap it
             return wrap_and_unwrap_bera(wallet_index, retry_count)
             
         except Exception as e:
@@ -169,7 +169,6 @@ if __name__ == "__main__":
             balance = w3.eth.get_balance(address)
             print(f"Wallet balance: {w3.from_wei(balance, 'ether')} BERA")
             
-            # Test wrap and unwrap
             wrap_and_unwrap_bera(wallet_index)
         else:
             print("Failed to connect to Berachain")
