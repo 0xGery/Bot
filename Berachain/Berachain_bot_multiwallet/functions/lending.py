@@ -91,7 +91,7 @@ def check_and_approve_honey(amount, wallet_index=0, retry_count=0):
             })
             
             signed_txn = w3.eth.account.sign_transaction(approve_txn, account.key)
-            tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+            tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
             print(f"📝 Tx Hash: {tx_hash.hex()}")
             
             receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
@@ -142,7 +142,7 @@ def supply_honey(amount_in_honey=1, wallet_index=0, retry_count=0):
         })
 
         signed_txn = w3.eth.account.sign_transaction(transaction, account.key)
-        tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
         print(f"🔄 Supplying {amount_in_honey} HONEY...")
         print(f"📝 Tx Hash: {tx_hash.hex()}")
         
@@ -171,7 +171,7 @@ def supply_honey_raw(amount_in_honey=1, wallet_index=0):
         if not check_and_approve_honey(amount_in_wei, wallet_index):
             return False
             
-        # Method ID for supply
+        # Method ID for supply(address,uint256,address,uint16)
         method_id = "0x617ba037"
         
         # Encode parameters
@@ -200,7 +200,7 @@ def supply_honey_raw(amount_in_honey=1, wallet_index=0):
         
         # Sign and send transaction
         signed_txn = w3.eth.account.sign_transaction(transaction, account.key)
-        tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
         print(f"Supplying {amount_in_honey} HONEY (raw method)...")
         print(f"Transaction hash: {tx_hash.hex()}")
         
