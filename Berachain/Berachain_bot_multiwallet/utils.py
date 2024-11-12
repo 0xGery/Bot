@@ -23,6 +23,10 @@ class WalletManager:
         
     def total_wallets(self):
         return len(self.accounts)
+        
+    def is_valid_index(self, index):
+        """Check if wallet index is valid"""
+        return 0 <= index < len(self.accounts)
 
 # Initialize wallet manager
 wallet_manager = WalletManager()
