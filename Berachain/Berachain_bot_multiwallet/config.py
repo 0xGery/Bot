@@ -3,6 +3,8 @@ import os
 from dotenv import load_dotenv
 import random
 
+from constants import CHAIN_ID
+
 # Load environment variables
 load_dotenv()
 
@@ -11,7 +13,6 @@ RPC_URLS = [
     os.getenv('RPC_URL', 'https://bartio.rpc.berachain.com'),
     os.getenv('RPC_URL_BACKUP_1', 'https://bera-testnet.nodeinfra.com'),
 ]
-CHAIN_ID = 80084  # Berachain bArtio testnet
 
 def get_working_web3():
     """Get a working Web3 instance by trying different RPCs"""
