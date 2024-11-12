@@ -15,6 +15,7 @@ STGUSDC_CONTRACT = "0xd6D83aF58a19Cd14eF3CF6fe848C9A4d21e5727c" # STGUSDC TOKEN 
 # CHAIN SETTINGS
 ########################################## 
 CHAIN_ID = 80084
+GAS_LIMIT = 300000
 
 ##########################################
 # ABI
@@ -151,3 +152,27 @@ HONEY_ABI = [{
     "type": "function"
 }]
 
+# WBERA ABI
+WBERA_ABI = [
+    {
+        "inputs": [],
+        "name": "deposit",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [{"type": "uint256", "name": "amount"}],
+        "name": "withdraw",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {   
+        "constant": True,
+        "inputs": [{"name": "account", "type": "address"}],
+        "name": "balanceOf",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "type": "function"
+    }
+]
