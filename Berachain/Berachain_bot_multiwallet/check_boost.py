@@ -107,6 +107,7 @@ def check_balances(w3, wallet_address, index):
 
 def main():
     """Main function to check all wallets"""
+    # Try each RPC URL until one works
     w3 = None
     for rpc_url in RPC_URLS:
         try:
