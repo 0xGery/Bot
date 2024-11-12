@@ -6,12 +6,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import w3, rotate_rpc
 from utils import wallet_manager, random_delay
-from eth_abi import encode
-from functions.delegate import bgt_tracker, BGT_ABI
-
-# Contract details
-BGT_CONTRACT = "0xbDa130737BDd9618301681329bF2e46A016ff9Ad"
-HONEY_WBERA_VAULT = "0xAD57d7d39a487C04a44D3522b910421888Fb9C6d"
+from constants import BGT_CONTRACT, HONEY_WBERA_VAULT, BGT_ABI, CLAIM_ABI
+from bgt_tracker import bgt_tracker
 
 # ABI for the getReward function in the HONEY-WBERA Vault
 CLAIM_ABI = [{
@@ -80,7 +76,7 @@ def claim_bgt(wallet_index=0, retry_count=0):
         })
 
         signed_txn = w3.eth.account.sign_transaction(transaction, account.key)
-        tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
         print(f"\n🔄 Claiming BGT from HONEY-WBERA Vault...")
         print(f"📝 Tx Hash: {tx_hash.hex()}")
         
