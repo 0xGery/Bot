@@ -129,7 +129,7 @@ class MultiWalletScheduler:
         """Execute HONEY mint and supply operations"""
         state = self.wallet_states[wallet_index]
         
-        if mint_honey(wallet_index):
+        if mint_honey(10000000, wallet_index):
             state['last_mint_time'] = datetime.now()
             state['mint_count'] += 1
             random_delay(5, 10)
