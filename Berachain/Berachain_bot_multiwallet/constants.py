@@ -1,3 +1,5 @@
+import random
+
 ##########################################
 # CONTRACT ADDRESSES
 ##########################################
@@ -15,7 +17,7 @@ STGUSDC_CONTRACT = "0xd6D83aF58a19Cd14eF3CF6fe848C9A4d21e5727c" # STGUSDC TOKEN 
 # CHAIN SETTINGS
 ########################################## 
 CHAIN_ID = 80084
-GAS_LIMIT = 300000
+GAS_LIMIT = random.randint(250000, 300000)
 
 ##########################################
 # ABI
