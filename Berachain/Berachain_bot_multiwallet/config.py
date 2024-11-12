@@ -9,10 +9,9 @@ load_dotenv()
 # Network Configuration
 RPC_URLS = [
     os.getenv('RPC_URL', 'https://bartio.rpc.berachain.com'),
-    os.getenv('RPC_URL_BACKUP_1', 'https://bartio.drpc.org'),
-    os.getenv('RPC_URL_BACKUP_2', 'https://bera-testnet.nodeinfra.com')
+    os.getenv('RPC_URL_BACKUP_1', 'https://bera-testnet.nodeinfra.com'),
 ]
-CHAIN_ID = 80084  # Berachain Artio testnet
+CHAIN_ID = 80084  # Berachain bArtio testnet
 
 def get_working_web3():
     """Get a working Web3 instance by trying different RPCs"""
