@@ -9,10 +9,7 @@ from utils import wallet_manager, random_delay
 from eth_abi import encode
 
 # Contract addresses
-from constants import HONEY_MINT_CONTRACT, STGUSDC_CONTRACT
-
-# ABI for HONEY minting
-from constants import HONEY_ABI, ERC20_ABI
+from constants import HONEY_MINT_CONTRACT, STGUSDC_CONTRACT, GAS_LIMIT, CHAIN_ID, HONEY_ABI, ERC20_ABI
 
 
 def mint_honey(amount=3000000, wallet_index=0, retry_count=0):
@@ -39,9 +36,9 @@ def mint_honey(amount=3000000, wallet_index=0, retry_count=0):
         ).build_transaction({
             'from': address,
             'nonce': w3.eth.get_transaction_count(address),
-            'gas': 300000,
+            'gas': GAS_LIMIT,
             'gasPrice': w3.eth.gas_price,
-            'chainId': 80084
+            'chainId': CHAIN_ID
         })
 
         signed_txn = w3.eth.account.sign_transaction(transaction, account.key)
