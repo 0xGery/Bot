@@ -9,15 +9,6 @@ from utils import wallet_manager, random_delay
 from constants import BGT_CONTRACT, HONEY_WBERA_VAULT, BGT_ABI, CLAIM_ABI
 from bgt_tracker import bgt_tracker
 
-# ABI for the getReward function in the HONEY-WBERA Vault
-CLAIM_ABI = [{
-    "inputs": [{"type": "address", "name": "game"}],
-    "name": "getReward",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-}]
-
 def get_bgt_balance(wallet_index=0, retry_count=0):
     """Get BGT balance for the wallet"""
     MAX_RETRIES = 3
