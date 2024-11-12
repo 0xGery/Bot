@@ -11,8 +11,10 @@ from config import w3, rotate_rpc
 from utils import wallet_manager, random_delay
 from eth_abi import encode
 from functions.claim import claim_bgt
-from constants import BGT_CONTRACT, VALIDATOR_ADDRESS, BGT_ABI
 from bgt_tracker import bgt_tracker
+
+from constants import BGT_CONTRACT, VALIDATOR_ADDRESS, BGT_ABI, GAS_LIMIT, CHAIN_ID
+
 
 def check_boost_status(wallet_index=0):
     """Check boost status for the wallet"""
@@ -154,9 +156,9 @@ def delegate_bgt(wallet_index=0, retry_count=0):
         ).build_transaction({
             'from': address,
             'nonce': w3.eth.get_transaction_count(address),
-            'gas': 300000,
+            'gas': GAS_LIMIT,
             'gasPrice': w3.eth.gas_price,
-            'chainId': 80084
+            'chainId': CHAIN_ID
         })
         
         signed_txn = w3.eth.account.sign_transaction(transaction, account.key)
@@ -226,9 +228,9 @@ def activate_boost(wallet_index=0, retry_count=0):
         ).build_transaction({
             'from': address,
             'nonce': w3.eth.get_transaction_count(address),
-            'gas': 300000,
+            'gas': GAS_LIMIT,
             'gasPrice': w3.eth.gas_price,
-            'chainId': 80084
+            'chainId': CHAIN_ID
         })
         
         signed_txn = w3.eth.account.sign_transaction(transaction, account.key)
