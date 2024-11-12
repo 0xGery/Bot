@@ -10,22 +10,10 @@ from eth_abi import encode
 from web3 import Web3
 
 # Contract addresses
-LENDING_CONTRACT = "0x30A3039675E5b5cbEA49d9a5eacbc11f9199B86D"
-HONEY_TOKEN = "0x0E4aaF1351de4c0264C5c7056Ef3777b41BD8e03"
+from constants import LENDING_CONTRACT, HONEY_TOKEN
 
 # ABI for lending and token contracts
-LENDING_ABI = [{
-    "inputs": [
-        {"type": "address", "name": "asset"},
-        {"type": "uint256", "name": "amount"},
-        {"type": "address", "name": "onBehalfOf"},
-        {"type": "uint16", "name": "referralCode"}
-    ],
-    "name": "supply",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-}]
+from constants import LENDING_ABI, ERC20_ABI
 
 ERC20_ABI = [{
     "constant": True,
