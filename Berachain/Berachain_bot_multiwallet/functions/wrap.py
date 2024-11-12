@@ -87,7 +87,7 @@ def wrap_and_unwrap_bera(wallet_index=0, retry_count=0):
                 })
                 
                 signed_txn = w3.eth.account.sign_transaction(unwrap_txn, account.key)
-                tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+                tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
                 print(f"🔄 Unwrapping {w3.from_wei(wbera_balance, 'ether')} WBERA")
                 print(f"📝 Tx Hash: {tx_hash.hex()}")
                 
@@ -133,7 +133,7 @@ def wrap_and_unwrap_bera(wallet_index=0, retry_count=0):
             })
             
             signed_txn = w3.eth.account.sign_transaction(wrap_txn, account.key)
-            tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+            tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
             print(f"🔄 Wrapping {amount_in_bera:.4f} BERA")
             print(f"📝 Tx Hash: {tx_hash.hex()}")
             
@@ -157,6 +157,7 @@ def wrap_and_unwrap_bera(wallet_index=0, retry_count=0):
             return wrap_and_unwrap_bera(wallet_index, retry_count + 1)
         return False
 
+# Add this at the end of the file:
 if __name__ == "__main__":
     print("Testing wrap and unwrap functionality...")
     try:
@@ -169,6 +170,7 @@ if __name__ == "__main__":
             balance = w3.eth.get_balance(address)
             print(f"Wallet balance: {w3.from_wei(balance, 'ether')} BERA")
             
+            # Test wrap and unwrap with 0.1 BERA
             wrap_and_unwrap_bera(wallet_index)
         else:
             print("Failed to connect to Berachain")
