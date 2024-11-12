@@ -1,6 +1,7 @@
 import sys
 import os
 import random
+from constants import WBERA_CONTRACT, WBERA_ABI, CHAIN_ID, GAS_LIMIT
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -9,33 +10,6 @@ from config import w3, rotate_rpc
 from utils import wallet_manager, random_delay
 from eth_abi import encode
 
-# Contract address
-WBERA_CONTRACT = "0x7507c1dc16935B82698e4C63f2746A2fCf994dF8"
-
-# ABI for WBERA contract
-WBERA_ABI = [
-    {
-        "inputs": [],
-        "name": "deposit",
-        "outputs": [],
-        "stateMutability": "payable",
-        "type": "function"
-    },
-    {
-        "inputs": [{"type": "uint256", "name": "amount"}],
-        "name": "withdraw",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {   # Add balanceOf function
-        "constant": True,
-        "inputs": [{"name": "account", "type": "address"}],
-        "name": "balanceOf",
-        "outputs": [{"name": "", "type": "uint256"}],
-        "type": "function"
-    }
-]
 
 def get_wbera_balance(wallet_index=0):
     """Get WBERA balance for the wallet"""
@@ -81,9 +55,9 @@ def wrap_and_unwrap_bera(wallet_index=0, retry_count=0):
                 unwrap_txn = contract.functions.withdraw(wbera_balance).build_transaction({
                     'from': address,
                     'nonce': w3.eth.get_transaction_count(address),
-                    'gas': 100000,
+                    'gas': GAS_LIMIT,
                     'gasPrice': w3.eth.gas_price,
-                    'chainId': 80084
+                    'chainId': CHAIN_ID
                 })
                 
                 signed_txn = w3.eth.account.sign_transaction(unwrap_txn, account.key)
@@ -110,7 +84,7 @@ def wrap_and_unwrap_bera(wallet_index=0, retry_count=0):
         amount_in_wei = w3.to_wei(amount_in_bera, 'ether')
         
         # Calculate total cost (amount + gas)
-        estimated_gas = 100000  # standard gas limit
+        estimated_gas = GAS_LIMIT  # standard gas limit
         gas_price = w3.eth.gas_price
         total_cost = amount_in_wei + (estimated_gas * gas_price)
         
@@ -129,7 +103,7 @@ def wrap_and_unwrap_bera(wallet_index=0, retry_count=0):
                 'nonce': w3.eth.get_transaction_count(address),
                 'gas': estimated_gas,
                 'gasPrice': gas_price,
-                'chainId': 80084
+                'chainId': CHAIN_ID
             })
             
             signed_txn = w3.eth.account.sign_transaction(wrap_txn, account.key)
