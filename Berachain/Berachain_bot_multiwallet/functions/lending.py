@@ -1,5 +1,6 @@
 import sys
 import os
+import random
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -66,8 +67,8 @@ def check_and_approve_honey(amount, wallet_index=0, retry_count=0):
             return check_and_approve_honey(amount, wallet_index, retry_count + 1)
         return False
 
-def supply_honey(amount_in_honey=1, wallet_index=0, retry_count=0):
-    """Supply HONEY to lending protocol"""
+def supply_honey(wallet_index=0, retry_count=0):
+    """Supply random amount of HONEY (1, 2, or 3) to lending protocol"""
     MAX_RETRIES = 3
     
     if retry_count >= MAX_RETRIES:
@@ -75,6 +76,9 @@ def supply_honey(amount_in_honey=1, wallet_index=0, retry_count=0):
         return False
         
     try:
+        # Randomly choose amount between 1, 2, or 3 HONEY
+        amount_in_honey = random.choice([1, 2, 3])
+        
         account = wallet_manager.get_account(wallet_index)
         address = wallet_manager.get_address(wallet_index)
         amount_in_wei = w3.to_wei(amount_in_honey, 'ether')
@@ -113,15 +117,18 @@ def supply_honey(amount_in_honey=1, wallet_index=0, retry_count=0):
     except Exception as e:
         print(f"❌ Supply error: {str(e)}")
         if rotate_rpc():
-            return supply_honey(amount_in_honey, wallet_index, retry_count + 1)
+            return supply_honey(wallet_index, retry_count + 1)
         return False
 
 # Alternative raw method implementation
-def supply_honey_raw(amount_in_honey=1, wallet_index=0):
-    """Supply HONEY to lending protocol using raw transaction"""
+def supply_honey_raw(wallet_index=0):
+    """Supply random amount of HONEY (1, 2, or 3) to lending protocol using raw transaction"""
     try:
-        account = wallet_manager.get_account(wallet_index)  # Get account from wallet manager
-        address = wallet_manager.get_address(wallet_index)  # Get address from wallet manager
+        # Randomly choose amount between 1, 2, or 3 HONEY
+        amount_in_honey = random.choice([1, 2, 3])
+        
+        account = wallet_manager.get_account(wallet_index)
+        address = wallet_manager.get_address(wallet_index)
         
         # Convert amount to Wei (18 decimals)
         amount_in_wei = w3.to_wei(amount_in_honey, 'ether')
@@ -183,8 +190,8 @@ if __name__ == "__main__":
             address = wallet_manager.get_address(wallet_index)
             print(f"Testing with wallet {wallet_index + 1} ({address})")
             
-            # Test supply with 1 HONEY
-            supply_honey(1, wallet_index)
+            # Test supply with random amount
+            supply_honey(wallet_index)
         else:
             print("Failed to connect to Berachain")
     except Exception as e:
