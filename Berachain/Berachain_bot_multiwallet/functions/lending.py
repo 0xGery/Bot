@@ -15,32 +15,6 @@ from constants import LENDING_CONTRACT, HONEY_TOKEN
 # ABI for lending and token contracts
 from constants import LENDING_ABI, ERC20_ABI
 
-ERC20_ABI = [{
-    "constant": True,
-    "inputs": [{"name": "account", "type": "address"}],
-    "name": "balanceOf",
-    "outputs": [{"name": "", "type": "uint256"}],
-    "type": "function"
-}, {
-    "constant": False,
-    "inputs": [
-        {"name": "spender", "type": "address"},
-        {"name": "amount", "type": "uint256"}
-    ],
-    "name": "approve",
-    "outputs": [{"name": "", "type": "bool"}],
-    "type": "function"
-}, {
-    "constant": True,
-    "inputs": [
-        {"name": "owner", "type": "address"},
-        {"name": "spender", "type": "address"}
-    ],
-    "name": "allowance",
-    "outputs": [{"name": "", "type": "uint256"}],
-    "type": "function"
-}]
-
 def check_and_approve_honey(amount, wallet_index=0, retry_count=0):
     """Check HONEY balance and approve if needed"""
     MAX_RETRIES = 3
