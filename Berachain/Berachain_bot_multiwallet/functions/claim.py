@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import w3, rotate_rpc
 from utils import wallet_manager, random_delay
-from constants import BGT_CONTRACT, HONEY_WBERA_VAULT, BGT_ABI, CLAIM_ABI
+from constants import BGT_CONTRACT, HONEY_WBERA_VAULT, BGT_ABI, CLAIM_ABI, GAS_LIMIT, CHAIN_ID
 from bgt_tracker import bgt_tracker
 
 def get_bgt_balance(wallet_index=0, retry_count=0):
@@ -61,9 +61,9 @@ def claim_bgt(wallet_index=0, retry_count=0):
         ).build_transaction({
             'from': address,
             'nonce': w3.eth.get_transaction_count(address),
-            'gas': 300000,
+            'gas': GAS_LIMIT,
             'gasPrice': w3.eth.gas_price,
-            'chainId': 80084
+            'chainId': CHAIN_ID
         })
 
         signed_txn = w3.eth.account.sign_transaction(transaction, account.key)
