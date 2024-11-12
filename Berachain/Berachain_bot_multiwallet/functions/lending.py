@@ -1,7 +1,5 @@
 import sys
 import os
-import random
-from constants import WBERA_CONTRACT, WBERA_ABI
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -9,25 +7,13 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import w3, rotate_rpc
 from utils import wallet_manager, random_delay
 from eth_abi import encode
+from web3 import Web3
 
+# Contract addresses
+from constants import LENDING_CONTRACT, HONEY_TOKEN, LENDING_ABI, ERC20_ABI, GAS_LIMIT, CHAIN_ID
 
-def get_wbera_balance(wallet_index=0):
-    """Get WBERA balance for the wallet"""
-    try:
-        address = wallet_manager.get_address(wallet_index)
-        contract = w3.eth.contract(address=WBERA_CONTRACT, abi=WBERA_ABI)
-        balance_wei = contract.functions.balanceOf(address).call()
-        balance_bera = w3.from_wei(balance_wei, 'ether')
-        print(f"Current WBERA balance: {balance_bera} WBERA")
-        return balance_wei
-    except Exception as e:
-        print(f"Error checking WBERA balance: {str(e)}")
-        if rotate_rpc():
-            return get_wbera_balance(wallet_index)
-        return None
-
-def wrap_and_unwrap_bera(wallet_index=0, retry_count=0):
-    """Wrap random amount of BERA and unwrap all WBERA"""
+def check_and_approve_honey(amount, wallet_index=0, retry_count=0):
+    """Check HONEY balance and approve if needed"""
     MAX_RETRIES = 3
     
     if retry_count >= MAX_RETRIES:
@@ -37,103 +23,158 @@ def wrap_and_unwrap_bera(wallet_index=0, retry_count=0):
     try:
         account = wallet_manager.get_account(wallet_index)
         address = wallet_manager.get_address(wallet_index)
+        honey_contract = w3.eth.contract(address=HONEY_TOKEN, abi=ERC20_ABI)
         
-        print("\n💫 WRAP & UNWRAP BERA:")
-        print("-"*30)
+        balance = honey_contract.functions.balanceOf(address).call()
+        print("\n🍯 HONEY Balance Check:")
+        print(f"└─ Current Balance: {w3.from_wei(balance, 'ether')} HONEY")
         
-        # First check if there's any WBERA balance
-        wbera_balance = get_wbera_balance(wallet_index)
-        if wbera_balance is None:
+        if balance < amount:
+            print("❌ Insufficient HONEY balance")
             return False
             
-        # If there's WBERA, unwrap it first
-        if wbera_balance > 0:
-            try:
-                contract = w3.eth.contract(address=WBERA_CONTRACT, abi=WBERA_ABI)
-                
-                # Unwrap all WBERA
-                unwrap_txn = contract.functions.withdraw(wbera_balance).build_transaction({
-                    'from': address,
-                    'nonce': w3.eth.get_transaction_count(address),
-                    'gas': 100000,
-                    'gasPrice': w3.eth.gas_price,
-                    'chainId': 80084
-                })
-                
-                signed_txn = w3.eth.account.sign_transaction(unwrap_txn, account.key)
-                tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
-                print(f"🔄 Unwrapping {w3.from_wei(wbera_balance, 'ether')} WBERA")
-                print(f"📝 Tx Hash: {tx_hash.hex()}")
-                
-                receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-                print(f"✅ Unwrap successful! Gas used: {receipt['gasUsed']}")
-                
-                random_delay(5, 10)
-                
-            except Exception as e:
-                print(f"Unwrap transaction error: {str(e)}")
-                if rotate_rpc():
-                    return wrap_and_unwrap_bera(wallet_index, retry_count + 1)
-                return False
-        
-        # Check BERA balance before wrapping
-        bera_balance = w3.eth.get_balance(address)
-        
-        # Random amount between 50-100 BERA
-        amount_in_bera = random.uniform(50, 100)
-        amount_in_wei = w3.to_wei(amount_in_bera, 'ether')
-        
-        # Calculate total cost (amount + gas)
-        estimated_gas = 100000  # standard gas limit
-        gas_price = w3.eth.gas_price
-        total_cost = amount_in_wei + (estimated_gas * gas_price)
-        
-        # Check if we have enough balance for the transaction
-        if bera_balance < total_cost:
-            print(f"❌ Insufficient balance for wrap. Have {w3.from_wei(bera_balance, 'ether')} BERA, need {w3.from_wei(total_cost, 'ether')} BERA")
-            return False
+        allowance = honey_contract.functions.allowance(address, LENDING_CONTRACT).call()
+        if allowance < amount:
+            print("\n✍️  Approving HONEY:")
+            print("-"*30)
             
-        try:
-            contract = w3.eth.contract(address=WBERA_CONTRACT, abi=WBERA_ABI)
-            
-            # Wrap BERA
-            wrap_txn = contract.functions.deposit().build_transaction({
+            approve_txn = honey_contract.functions.approve(
+                LENDING_CONTRACT,
+                amount
+            ).build_transaction({
                 'from': address,
-                'value': amount_in_wei,
                 'nonce': w3.eth.get_transaction_count(address),
-                'gas': estimated_gas,
-                'gasPrice': gas_price,
-                'chainId': 80084
+                'gas': GAS_LIMIT,
+                'gasPrice': w3.eth.gas_price,
+                'chainId': CHAIN_ID
             })
             
-            signed_txn = w3.eth.account.sign_transaction(wrap_txn, account.key)
+            signed_txn = w3.eth.account.sign_transaction(approve_txn, account.key)
             tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
-            print(f"🔄 Wrapping {amount_in_bera:.4f} BERA")
             print(f"📝 Tx Hash: {tx_hash.hex()}")
             
             receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-            print(f"✅ Wrap successful! Gas used: {receipt['gasUsed']}")
+            print(f"✅ Approval successful! Gas used: {receipt['gasUsed']}")
             
             random_delay(5, 10)
             
-            # Get updated WBERA balance and unwrap it
-            return wrap_and_unwrap_bera(wallet_index, retry_count)
-            
-        except Exception as e:
-            print(f"Wrap transaction error: {str(e)}")
-            if rotate_rpc():
-                return wrap_and_unwrap_bera(wallet_index, retry_count + 1)
-            return False
+        return True
             
     except Exception as e:
-        print(f"❌ Wrap/Unwrap error: {str(e)}")
+        print(f"❌ Approval error: {str(e)}")
         if rotate_rpc():
-            return wrap_and_unwrap_bera(wallet_index, retry_count + 1)
+            return check_and_approve_honey(amount, wallet_index, retry_count + 1)
         return False
 
-# Add this at the end of the file:
+def supply_honey(amount_in_honey=1, wallet_index=0, retry_count=0):
+    """Supply HONEY to lending protocol"""
+    MAX_RETRIES = 3
+    
+    if retry_count >= MAX_RETRIES:
+        print(f"❌ Max retries ({MAX_RETRIES}) reached. Aborting operation.")
+        return False
+        
+    try:
+        account = wallet_manager.get_account(wallet_index)
+        address = wallet_manager.get_address(wallet_index)
+        amount_in_wei = w3.to_wei(amount_in_honey, 'ether')
+        
+        print("\n📥 SUPPLYING HONEY:")
+        print("-"*30)
+        
+        if not check_and_approve_honey(amount_in_wei, wallet_index):
+            return False
+            
+        contract = w3.eth.contract(address=LENDING_CONTRACT, abi=LENDING_ABI)
+        
+        transaction = contract.functions.supply(
+            HONEY_TOKEN,
+            amount_in_wei,
+            address,
+            18
+        ).build_transaction({
+            'from': address,
+            'nonce': w3.eth.get_transaction_count(address),
+            'gas': GAS_LIMIT,
+            'gasPrice': w3.eth.gas_price,
+            'chainId': CHAIN_ID
+        })
+
+        signed_txn = w3.eth.account.sign_transaction(transaction, account.key)
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        print(f"🔄 Supplying {amount_in_honey} HONEY...")
+        print(f"📝 Tx Hash: {tx_hash.hex()}")
+        
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        print(f"✅ Supply successful! Gas used: {receipt['gasUsed']}")
+        
+        return True
+            
+    except Exception as e:
+        print(f"❌ Supply error: {str(e)}")
+        if rotate_rpc():
+            return supply_honey(amount_in_honey, wallet_index, retry_count + 1)
+        return False
+
+# Alternative raw method implementation
+def supply_honey_raw(amount_in_honey=1, wallet_index=0):
+    """Supply HONEY to lending protocol using raw transaction"""
+    try:
+        account = wallet_manager.get_account(wallet_index)  # Get account from wallet manager
+        address = wallet_manager.get_address(wallet_index)  # Get address from wallet manager
+        
+        # Convert amount to Wei (18 decimals)
+        amount_in_wei = w3.to_wei(amount_in_honey, 'ether')
+        
+        # First check and approve HONEY
+        if not check_and_approve_honey(amount_in_wei, wallet_index):
+            return False
+            
+        # Method ID for supply(address,uint256,address,uint16)
+        method_id = "0x617ba037"
+        
+        # Encode parameters
+        params = encode(
+            ['address', 'uint256', 'address', 'uint16'],
+            [HONEY_TOKEN, amount_in_wei, address, 18]
+        )
+        
+        # Create data field
+        data = method_id + params.hex()
+        
+        # Get current nonce
+        nonce = w3.eth.get_transaction_count(address)
+        
+        # Build transaction
+        transaction = {
+            'from': address,
+            'to': LENDING_CONTRACT,
+            'value': 0,
+            'gas': GAS_LIMIT,
+            'gasPrice': w3.eth.gas_price,
+            'nonce': nonce,
+            'chainId': CHAIN_ID,
+            'data': data
+        }
+        
+        # Sign and send transaction
+        signed_txn = w3.eth.account.sign_transaction(transaction, account.key)
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        print(f"Supplying {amount_in_honey} HONEY (raw method)...")
+        print(f"Transaction hash: {tx_hash.hex()}")
+        
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        print(f"Supply successful! Gas used: {receipt['gasUsed']}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"Supply error: {str(e)}")
+        return False
+
+# Test execution
 if __name__ == "__main__":
-    print("Testing wrap and unwrap functionality...")
+    print("Testing HONEY supply functionality...")
     try:
         if w3.is_connected():
             print(f"Connected to Berachain")
@@ -141,11 +182,9 @@ if __name__ == "__main__":
             wallet_index = 0
             address = wallet_manager.get_address(wallet_index)
             print(f"Testing with wallet {wallet_index + 1} ({address})")
-            balance = w3.eth.get_balance(address)
-            print(f"Wallet balance: {w3.from_wei(balance, 'ether')} BERA")
             
-            # Test wrap and unwrap with 0.1 BERA
-            wrap_and_unwrap_bera(wallet_index)
+            # Test supply with 1 HONEY
+            supply_honey(1, wallet_index)
         else:
             print("Failed to connect to Berachain")
     except Exception as e:
