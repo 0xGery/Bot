@@ -9,48 +9,11 @@ from utils import wallet_manager, random_delay
 from eth_abi import encode
 
 # Contract addresses
-HONEY_MINT_CONTRACT = "0xAd1782b2a7020631249031618fB1Bd09CD926b31"
-STGUSDC_CONTRACT = "0xd6D83aF58a19Cd14eF3CF6fe848C9A4d21e5727c"
+from constants import HONEY_MINT_CONTRACT, STGUSDC_CONTRACT
 
 # ABI for HONEY minting
-HONEY_ABI = [{
-    "inputs": [
-        {"type": "address", "name": "asset"},
-        {"type": "uint256", "name": "amount"},
-        {"type": "address", "name": "receiver"}
-    ],
-    "name": "mint",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-}]
+from constants import HONEY_ABI, ERC20_ABI
 
-# ABI for checking STGUSDC balance and approval
-ERC20_ABI = [{
-    "constant": True,
-    "inputs": [{"name": "account", "type": "address"}],
-    "name": "balanceOf",
-    "outputs": [{"name": "", "type": "uint256"}],
-    "type": "function"
-}, {
-    "constant": False,
-    "inputs": [
-        {"name": "spender", "type": "address"},
-        {"name": "amount", "type": "uint256"}
-    ],
-    "name": "approve",
-    "outputs": [{"name": "", "type": "bool"}],
-    "type": "function"
-}, {
-    "constant": True,
-    "inputs": [
-        {"name": "owner", "type": "address"},
-        {"name": "spender", "type": "address"}
-    ],
-    "name": "allowance",
-    "outputs": [{"name": "", "type": "uint256"}],
-    "type": "function"
-}]
 
 def mint_honey(amount=3000000, wallet_index=0, retry_count=0):
     """Mint HONEY tokens from STGUSDC (3000000 = 3 STGUSDC)"""
