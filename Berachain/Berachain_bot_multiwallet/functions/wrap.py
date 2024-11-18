@@ -80,7 +80,7 @@ def wrap_and_unwrap_bera(wallet_index=0, retry_count=0):
         bera_balance = w3.eth.get_balance(address)
         
         # Random amount between 1-100 BERA
-        amount_in_bera = random.uniform(1, 100)
+        amount_in_bera = random.uniform(1, 30)
         amount_in_wei = w3.to_wei(amount_in_bera, 'ether')
         
         # Calculate total cost (amount + gas)
