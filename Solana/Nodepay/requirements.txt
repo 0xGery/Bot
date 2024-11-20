@@ -1,0 +1,6 @@
+pyyaml
+psutil
+colorama
+cryptography
+aiohttp
+certifi
