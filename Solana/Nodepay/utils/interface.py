@@ -69,11 +69,24 @@ def render_dashboard(stats, status=None):
     # Add Proxy Status section if there are active proxies
     if stats['active_proxies']:
         print(f"\n{Fore.CYAN}┌─────────────── PROXY STATUS ─────────────────┐{Style.RESET_ALL}")
-        for proxy in list(stats['active_proxies'])[:3]:  # Show top 3 proxies
+        
+        # Sort proxies by success rate
+        proxy_stats = stats.get('proxy_stats', {})
+        sorted_proxies = sorted(
+            list(stats['active_proxies']),
+            key=lambda x: proxy_stats.get(x, {}).get('success_rate', 0),
+            reverse=True  # Highest percentage first
+        )
+        
+        # Display top 3 proxies
+        for proxy in sorted_proxies[:3]:
             proxy_stats = stats.get('proxy_stats', {}).get(proxy, {})
-            print(f"{Fore.CYAN}│{Style.RESET_ALL} {proxy:<15} : {Fore.GREEN}Active{Style.RESET_ALL} ({proxy_stats.get('success_rate', 0):.1f}%)")
-        if len(stats['active_proxies']) > 3:
-            print(f"{Fore.CYAN}│{Style.RESET_ALL} ... and {len(stats['active_proxies'])-3} more")
+            success_rate = proxy_stats.get('success_rate', 0)
+            status_color = Fore.GREEN if success_rate > 90 else (Fore.YELLOW if success_rate > 80 else Fore.RED)
+            print(f"{Fore.CYAN}│{Style.RESET_ALL} {proxy:<15} : {status_color}Active{Style.RESET_ALL} ({success_rate:.1f}%)")
+            
+        if len(sorted_proxies) > 3:
+            print(f"{Fore.CYAN}│{Style.RESET_ALL} ... and {len(sorted_proxies)-3} more")
         print(f"{Fore.CYAN}└──────────────────────────────────────────────┘{Style.RESET_ALL}")
 
 async def loading_animation(message, duration=2):
