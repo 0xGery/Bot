@@ -52,13 +52,6 @@ def render_dashboard(stats, status=None):
     print(f"{Fore.CYAN}│{Style.RESET_ALL} Failed Pings  : {Fore.RED}{stats['failed_pings']}{Style.RESET_ALL}")
     print(f"{Fore.CYAN}│{Style.RESET_ALL} Active Proxies: {Fore.GREEN}{len(stats['active_proxies'])}{Style.RESET_ALL}")
     print(f"{Fore.CYAN}└──────────────────────────────────────────────┘{Style.RESET_ALL}")
-    
-    # Performance Metrics
-    print(f"\n{Fore.CYAN}┌─────────────── PERFORMANCE ──────────────────┐{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}│{Style.RESET_ALL} Avg Response  : {Fore.GREEN}{stats.get('avg_response', 0):.2f}ms{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}│{Style.RESET_ALL} Memory Usage  : {Fore.YELLOW}{stats.get('memory_usage', 0):.1f}MB{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}│{Style.RESET_ALL} CPU Usage     : {Fore.YELLOW}{stats.get('cpu_percent', 0):.1f}%{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}└──────────────────────────────────────────────┘{Style.RESET_ALL}")
 
     # Network Status
     print(f"\n{Fore.CYAN}┌─────────────── NETWORK STATUS ───────────────┐{Style.RESET_ALL}")
