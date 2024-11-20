@@ -107,22 +107,41 @@ class SentinelMonitor:
                     if response.status != 200:
                         raise Exception('Ping failed')
 
-                    self._update_stats(True)
+                    self._update_stats(True, proxy)  # Add proxy parameter
                     self._set_success_status(session_data, proxy)
                     
             except Exception as e:
-                self._update_stats(False)
+                self._update_stats(False, proxy)  # Add proxy parameter
                 self._set_error_status(session_data, proxy, str(e))
                 raise
 
-    def _update_stats(self, success):
+    def _update_stats(self, success, proxy=None):
         """Update bot statistics"""
         self.stats['total_pings'] += 1
         if success:
             self.stats['successful_pings'] += 1
             self.stats['last_success'] = datetime.now()
+            
+            # Update proxy stats
+            if proxy:
+                if 'proxy_stats' not in self.stats:
+                    self.stats['proxy_stats'] = {}
+                if proxy['host'] not in self.stats['proxy_stats']:
+                    self.stats['proxy_stats'][proxy['host']] = {'total': 0, 'success': 0}
+                
+                self.stats['proxy_stats'][proxy['host']]['total'] += 1
+                self.stats['proxy_stats'][proxy['host']]['success'] += 1
+                
+                # Calculate success rate
+                proxy_stats = self.stats['proxy_stats'][proxy['host']]
+                proxy_stats['success_rate'] = (proxy_stats['success'] / proxy_stats['total']) * 100
         else:
             self.stats['failed_pings'] += 1
+            # Update proxy failure
+            if proxy and 'proxy_stats' in self.stats and proxy['host'] in self.stats['proxy_stats']:
+                self.stats['proxy_stats'][proxy['host']]['total'] += 1
+                proxy_stats = self.stats['proxy_stats'][proxy['host']]
+                proxy_stats['success_rate'] = (proxy_stats['success'] / proxy_stats['total']) * 100
 
     def _set_success_status(self, session_data, proxy):
         """Set success status message"""
