@@ -1,5 +1,4 @@
-Replace this with your Proxies data
-IP:PORT:USERNAME:PASSWORD
-IP:PORT:USERNAME:PASSWORD
-IP:PORT:USERNAME:PASSWORD
-IP:PORT:USERNAME:PASSWORD
+IP:PORT:USERNAME:PASSWORD #Replace this with your Proxies data
+IP:PORT:USERNAME:PASSWORD #Replace this with your Proxies data
+IP:PORT:USERNAME:PASSWORD #Replace this with your Proxies data
+IP:PORT:USERNAME:PASSWORD #Replace this with your Proxies data
