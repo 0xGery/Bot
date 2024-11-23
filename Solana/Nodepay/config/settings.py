@@ -1,14 +1,23 @@
+import json
+import os
+
 class AppConfig:
     # App Information
     NAME = "NullxNodePay Sentinel"
     VERSION = "3.0.0"
     AUTHOR = "Nullx"
     
-    # API Endpoints
-    BASE_URL = 'http://nodepay.org'
-    IP_CHECK_URL = 'http://ipinfo.io/json'
-    PING_URL = 'http://13.215.134.222/api/network/ping'
-    SESSION_URL = 'https://api.nodepay.ai/api/auth/session'
+    # Load API endpoints from JSON
+    try:
+        with open('data/endpoints.json', 'r') as f:
+            endpoints = json.load(f)
+            BASE_URL = endpoints['base_url']
+            IP_CHECK_URL = endpoints['ip_check']
+            SESSION_URL = endpoints['session']
+            PING_URLS = endpoints['ping_urls']
+    except Exception as e:
+        print(f"Error loading endpoints.json: {e}")
+        PING_URLS = ["http://13.215.134.222/api/network/ping"]  # fallback
     
     # Timing Configuration
     RETRY_INTERVAL = 30  # seconds
