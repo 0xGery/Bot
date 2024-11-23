@@ -80,7 +80,7 @@ class SentinelMonitor:
                 return data['data']
 
     async def _send_ping(self, session_data, token, proxy=None):
-        """Send ping to maintain connection"""
+        """Send ping to maintain connection with failover support"""
         ping_data = {
             'id': session_data['uid'],
             'browser_id': session_data.get('browser_id', secrets.token_hex(8)),
@@ -88,32 +88,40 @@ class SentinelMonitor:
             'version': self.config.VERSION
         }
         
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'User-Agent': self.config.USER_AGENT,
+            'Accept': 'application/json'
+        }
+        
+        proxy_url = self.proxy_manager._build_url(proxy) if proxy else None
+        
+        # Try each ping URL until one succeeds
+        last_error = None
         async with aiohttp.ClientSession() as session:
-            headers = {
-                'Authorization': f'Bearer {token}',
-                'User-Agent': self.config.USER_AGENT,
-                'Accept': 'application/json'
-            }
+            for ping_url in self.config.PING_URLS:
+                try:
+                    async with session.post(
+                        ping_url,
+                        json=ping_data,
+                        headers=headers,
+                        proxy=proxy_url,
+                        timeout=10  # Add timeout
+                    ) as response:
+                        if response.status == 200:
+                            self._update_stats(True, proxy)
+                            self._set_success_status(session_data, proxy, ping_url)  # Add ping_url
+                            return
+                        
+                except Exception as e:
+                    last_error = str(e)
+                    self.logger.warning(f"Ping failed for {ping_url}: {str(e)}")
+                    continue
             
-            proxy_url = self.proxy_manager._build_url(proxy) if proxy else None
-            
-            try:
-                async with session.post(
-                    self.config.PING_URL,
-                    json=ping_data,
-                    headers=headers,
-                    proxy=proxy_url
-                ) as response:
-                    if response.status != 200:
-                        raise Exception('Ping failed')
-
-                    self._update_stats(True, proxy)  # Add proxy parameter
-                    self._set_success_status(session_data, proxy)
-                    
-            except Exception as e:
-                self._update_stats(False, proxy)  # Add proxy parameter
-                self._set_error_status(session_data, proxy, str(e))
-                raise
+            # If we get here, all ping URLs failed
+            self._update_stats(False, proxy)
+            self._set_error_status(session_data, proxy, f"All ping endpoints failed. Last error: {last_error}")
+            raise Exception("All ping endpoints failed")
 
     def _update_stats(self, success, proxy=None):
         """Update bot statistics"""
@@ -143,12 +151,13 @@ class SentinelMonitor:
                 proxy_stats = self.stats['proxy_stats'][proxy['host']]
                 proxy_stats['success_rate'] = (proxy_stats['success'] / proxy_stats['total']) * 100
 
-    def _set_success_status(self, session_data, proxy):
+    def _set_success_status(self, session_data, proxy, ping_url):
         """Set success status message"""
         timestamp = datetime.now().strftime('%H:%M:%S')
         self.current_status = f"{Fore.CYAN}│{Style.RESET_ALL} {Fore.GREEN}[{timestamp}] ✓ Ping Successful{Style.RESET_ALL}\n\
 {Fore.CYAN}│{Style.RESET_ALL} └─ UID: {Fore.YELLOW}{session_data['uid']}{Style.RESET_ALL}\n\
 {Fore.CYAN}│{Style.RESET_ALL}    ├─ Via: {Fore.CYAN}{proxy['host'] if proxy else 'direct'}{Style.RESET_ALL}\n\
+{Fore.CYAN}│{Style.RESET_ALL}    ├─ URL: {Fore.CYAN}{ping_url.split('/')[2]}{Style.RESET_ALL}\n\
 {Fore.CYAN}│{Style.RESET_ALL}    ├─ Response: {Fore.GREEN}{self.stats.get('last_response_time', 0):.2f}ms{Style.RESET_ALL}\n\
 {Fore.CYAN}│{Style.RESET_ALL}    └─ Status: {Fore.GREEN}Active{Style.RESET_ALL}"
 
@@ -160,16 +169,6 @@ class SentinelMonitor:
 {Fore.CYAN}│{Style.RESET_ALL}    ├─ Via: {Fore.CYAN}{proxy['host'] if proxy else 'direct'}{Style.RESET_ALL}\n\
 {Fore.CYAN}│{Style.RESET_ALL}    ├─ Error: {Fore.RED}{error}{Style.RESET_ALL}\n\
 {Fore.CYAN}│{Style.RESET_ALL}    └─ Status: {Fore.RED}Failed{Style.RESET_ALL}"
-
-    def _set_error_status(self, session_data, proxy, error):
-        """Set error status message"""
-        timestamp = datetime.now().strftime('%H:%M:%S')
-        self.current_status = f"""
-{Fore.CYAN}│{Style.RESET_ALL} {Fore.RED}[{timestamp}] ✗ Ping Failed{Style.RESET_ALL}
-{Fore.CYAN}│{Style.RESET_ALL} └─ UID: {Fore.YELLOW}{session_data['uid']}{Style.RESET_ALL}
-{Fore.CYAN}│{Style.RESET_ALL}    ├─ Via: {Fore.CYAN}{proxy['host'] if proxy else 'direct'}{Style.RESET_ALL}
-{Fore.CYAN}│{Style.RESET_ALL}    ├─ Error: {Fore.RED}{error}{Style.RESET_ALL}
-{Fore.CYAN}│{Style.RESET_ALL}    └─ Status: {Fore.RED}Failed{Style.RESET_ALL}"""
 
 class RetryHandler:
     def __init__(self, max_retries=3, backoff_factor=1.5):
