@@ -4,3 +4,4 @@ colorama
 cryptography
 aiohttp
 certifi
+asyncio
