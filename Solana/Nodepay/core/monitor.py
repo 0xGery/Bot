@@ -3,7 +3,8 @@ import asyncio
 from datetime import datetime
 import secrets
 from colorama import Fore, Style
-from .proxy import ProxyManager
+from core.proxy import ProxyManager
+from utils.security import SecurityManager
 
 class SentinelMonitor:
     def __init__(self, config, logger):
@@ -60,24 +61,77 @@ class SentinelMonitor:
 
     async def _get_session_data(self, token, proxy=None):
         """Get session data from API"""
-        async with aiohttp.ClientSession() as session:
-            headers = {
-                'Authorization': f'Bearer {token}',
-                'User-Agent': self.config.USER_AGENT,
-                'Accept': 'application/json'
-            }
+        try:
+            # Validate token first
+            security_manager = SecurityManager()
+            is_valid, message = security_manager.validate_token(token)
             
-            proxy_url = self.proxy_manager._build_url(proxy) if proxy else None
+            if not is_valid:
+                self.logger.error(f"Token validation failed: {message}")
+                raise Exception(f"Invalid token: {message}")
             
-            async with session.post(
-                self.config.SESSION_URL,
-                headers=headers,
-                proxy=proxy_url
-            ) as response:
-                if response.status != 200:
-                    raise Exception('Session request failed')
-                data = await response.json()
-                return data['data']
+            self.logger.debug(f"Token validated successfully")
+            
+            self.logger.debug(f"Initializing session with token: {token[:10]}...")
+            if proxy:
+                self.logger.debug(f"Using proxy: {proxy['host']}:{proxy['port']}")
+            
+            async with aiohttp.ClientSession() as session:
+                headers = {
+                    'Authorization': f'Bearer {token}',
+                    'User-Agent': self.config.USER_AGENT,
+                    'Accept': 'application/json'
+                }
+                
+                proxy_url = self.proxy_manager._build_url(proxy) if proxy else None
+                
+                self.logger.debug(f"Making request to {self.config.SESSION_URL}")
+                self.logger.debug(f"Headers: {headers}")
+                
+                async with session.post(
+                    self.config.SESSION_URL,
+                    headers=headers,
+                    proxy=proxy_url,
+                    timeout=10
+                ) as response:
+                    self.logger.debug(f"Response status: {response.status}")
+                    
+                    # Log response headers
+                    self.logger.debug(f"Response headers: {dict(response.headers)}")
+                    
+                    # Get response text first
+                    response_text = await response.text()
+                    self.logger.debug(f"Response body: {response_text}")
+                    
+                    if response.status != 200:
+                        self.logger.error(f"Session request failed with status {response.status}")
+                        self.logger.error(f"Response body: {response_text}")
+                        raise Exception(f'Session request failed with status {response.status}')
+                    
+                    try:
+                        data = await response.json()
+                    except Exception as e:
+                        self.logger.error(f"Failed to parse JSON response: {str(e)}")
+                        self.logger.error(f"Raw response: {response_text}")
+                        raise Exception('Invalid JSON response')
+                    
+                    if not data:
+                        self.logger.error("Empty response data")
+                        raise Exception('Empty response data')
+                    
+                    if 'data' not in data:
+                        self.logger.error(f"Missing 'data' key in response: {data}")
+                        raise Exception('Invalid response format: missing data key')
+                    
+                    self.logger.debug(f"Successfully retrieved session data: {data['data']}")
+                    return data['data']
+                
+        except aiohttp.ClientError as e:
+            self.logger.error(f"Network error during session request: {str(e)}")
+            raise Exception(f'Network error: {str(e)}')
+        except Exception as e:
+            self.logger.error(f"Unexpected error during session request: {str(e)}")
+            raise
 
     async def _send_ping(self, session_data, token, proxy=None):
         """Send ping to maintain connection with failover support"""
