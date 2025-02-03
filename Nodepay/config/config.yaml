@@ -1,0 +1,12 @@
+monitor:
+  retry_interval: 30
+  max_retries: 3
+  backoff_factor: 1.5
+
+proxy:
+  cache_ttl: 7200
+  validation_timeout: 10
+
+dashboard:
+  update_interval: 1
+  show_detailed_stats: true
