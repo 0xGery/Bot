@@ -4,12 +4,12 @@ An automated trading and interaction system for the Monad blockchain, supporting
 
 ## Features
 
-- 🤖 Automated interactions with multiple DeFi protocols
-- ⏰ Scheduled execution between 7 AM - 10 AM daily
-- 🔄 Random pattern execution to simulate natural behavior
-- 🔌 Multiple RPC support with automatic failover
-- 👛 Multi-wallet support
-- 🔒 Secure environment variable configuration
+-  Automated interactions with multiple DeFi protocols
+-  Scheduled execution between 7 AM - 10 AM daily
+-  Random pattern execution to simulate natural behavior
+-  Multiple RPC support with automatic failover
+-  Multi-wallet support
+-  Secure environment variable configuration
 
 ## Supported Protocols
 
